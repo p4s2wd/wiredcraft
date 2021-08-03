@@ -1,0 +1,32 @@
+# init mysqld
+- name: init mysql
+  shell: "{{ BASE_DIR }}/bin/mysqld --initialize-insecure --user={{ MYSQL_USER }} --basedir={{ BASE_DIR }}  --datadir={{ DATA_DIR }}"
+
+- name: copy mysql.server to /etc
+  copy: src={{ BASE_DIR }}/support-files/mysql.server dest=/etc/init.d/mysql
+
+- name: change the basedir from startup script
+  lineinfile:
+    dest: /etc/init.d/mysql
+    regexp: "^basedir="
+    insertbefore: "^# Default value, in seconds, afterwhich the script should timeout waiting"
+    line: "basedir={{ BASE_DIR }}"
+
+- name: change the datadir from startup script
+  lineinfile:
+    dest: /etc/init.d/mysql
+    regexp: "^datadir="
+    insertbefore: "^# Default value, in seconds, afterwhich the script should timeout waiting"
+    line: "datadir={{ DATA_DIR }}"
+
+- name: make the startup script execuble 
+  file: dest=/etc/init.d/mysql state=file mode=0755
+
+- name: setup the profile
+  shell: " if [ `grep {{ BASE_DIR }}/bin /etc/profile |wc -l` -eq 0 ]; then echo export PATH=$PATH:{{ BASE_DIR }}/bin >> /etc/profile && source /etc/profile; else source /etc/profile; fi"
+
+- name: start mysql and make it boot with OS
+  shell: "systemctl daemon-reload && systemctl enable mysqld && systemctl start mysqld"
+
+- name: setup the password
+  shell: "bash {{ SOURCE_DIR }}/change_passwd.sh"

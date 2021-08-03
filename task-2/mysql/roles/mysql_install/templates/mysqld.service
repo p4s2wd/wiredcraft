@@ -1,0 +1,18 @@
+[Unit]
+Description=MySQL Server
+After=network.target
+After=syslog.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+User=mysql
+Group=mysql
+ExecStart={{ BASE_DIR }}/bin/mysqld --defaults-file=/etc/my.cnf
+
+# set the connection number 
+LimitNOFILE=65535
+LimitNPROC=65535
+
+PrivateTmp=false

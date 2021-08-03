@@ -1,0 +1,48 @@
+- name: add mysql group
+  group: name={{ MYSQL_USER }}  state=present
+
+- name: add user mysql
+  user: name={{ MYSQL_USER }}  group={{ MYSQL_USER }}  state=present create_home=False shell=/sbin/nologin
+
+- name: create mysql folder
+  file: name={{ item }} state=directory mode=0755 recurse=yes
+  with_items:
+  - "{{ SOURCE_DIR }}"
+  - "{{ DATA_DIR }}"
+
+- name: change the owner of folder to mysql
+  file: name={{ DATA_DIR }} owner={{ MYSQL_USER }} group={{ MYSQL_USER }}
+
+- name: download mysql installation package
+  get_url: url={{ DOWNLOAD_URL }} dest={{ SOURCE_DIR }} owner={{ MYSQL_USER }} group={{ MYSQL_USER }}
+
+- name: copy mysql installation package
+  copy: src=mysql-{{ MYSQL_VER }}-linux-glibc2.12-x86_64.tar.gz dest={{ SOURCE_DIR }} owner={{ MYSQL_USER }} group={{ MYSQL_USER }}
+
+- name: untar the package
+  unarchive: src={{ SOURCE_DIR }}/mysql-{{ MYSQL_VER }}-linux-glibc2.12-x86_64.tar.gz dest=/usr/local owner={{ MYSQL_USER }} group={{ MYSQL_USER }}
+
+- name: rename the mysql folder
+  shell: "mv /usr/local/mysql-{{ MYSQL_VER }}-linux-glibc2.12-x86_64 {{ BASE_DIR }} && chown -R {{ MYSQL_USER }}:{{ MYSQL_USER }} {{ BASE_DIR }}"
+
+- name: copy mysql.cnf
+  template: src=my.cnf dest=/etc/my.cnf owner=root group=root
+
+# copy mysql service file
+- name: copy mysqld.service
+  template: src=mysqld.service dest=/usr/lib/systemd/system/mysqld.service owner=root group=root
+
+# copy the change_passwd.sh
+- name: copy change_passwd.sh
+  template: src=change_passwd.sh dest={{ SOURCE_DIR }} owner=root group=root
+
+- name: create mysql log folders
+  file: name={{ item }} state=directory owner={{ MYSQL_USER }} group={{ MYSQL_USER }} mode=0755 recurse=yes
+  with_items:
+  - "/var/log/mysql"
+  - "/var/run/mysqld"
+  - "{{ BASE_DIR }}/tmp"
+  - "{{ BASE_DIR }}/log"
+
+- name: create error.log 
+  file: dest={{ BASE_DIR }}/log/error.log state=touch owner={{ MYSQL_USER }} group={{ MYSQL_USER }}

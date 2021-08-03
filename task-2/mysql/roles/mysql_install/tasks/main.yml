@@ -1,0 +1,4 @@
+# include prepare、copy、install modules
+- include: prepare.yml
+- include: copy.yml
+- include: install.yml

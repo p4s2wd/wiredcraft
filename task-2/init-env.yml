@@ -1,0 +1,64 @@
+---
+- hosts: api-db
+  vars:
+  remote_user: root
+  gather_facts: false
+ 
+  tasks:
+  - name: disable firewall
+    service: name=firewalld state=stopped enabled=no
+
+  - name: turn off selinux
+    selinux: state=disabled
+
+  - name: stop swap
+    shell: setenforce 0 ; swapoff -a
+
+  - name: turn off swap
+    lineinfile:
+      dest: /etc/fstab
+      regexp: ".*swap"
+      line: ""
+
+  - name: set the timezone to Shanghai
+    copy: src=/usr/share/zoneinfo/Asia/Shanghai dest=/etc/localtime
+
+  - name: set "ulimit value"
+    action: shell sed -i  '$ a fs.file-max = 65535'  /etc/sysctl.conf &&  sed -i '$ a* soft nofile 65535\n* hard nofile 65535' /etc/security/limits.conf
+
+  - name: yum install epel-release
+    yum: name=epel-release state=latest
+
+  - name: insall the common tools
+    yum:
+      name:
+        - vim
+        - lrzsz
+        - net-tools
+        - wget
+        - curl
+        - bash-completion
+        - rsync
+        - gcc
+        - unzip
+        - git
+        - perl-Data-Dumper
+        - libaio-devel
+      state: latest
+
+  - name: update the OS
+    shell: "yum update -y"
+    args:
+      warn: False
+      
+  - name: install packages for dokcer
+    shell: yum install -y yum-utils device-mapper-persistent-data lvm2 rsync telnet apr apr-util zip
+      
+  - name: install docker repo
+    shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+  - name: install latest version of docker
+    shell: yum install docker-ce docker-ce-cli containerd.io
+    
+  - name: start docker
+    shell: systemctl start docker
